@@ -1,0 +1,8 @@
+﻿src/context/AuthContext.tsx(29,39): error TS6133: 'password' is declared but its value is never read.
+src/context/AuthContext.tsx(47,42): error TS6133: 'password' is declared but its value is never read.
+src/pages/Dashboard.tsx(6,1): error TS6133: 'Button' is declared but its value is never read.
+src/pages/Dashboard.tsx(7,10): error TS6133: 'TrendingUp' is declared but its value is never read.
+src/pages/Dashboard.tsx(7,45): error TS6133: 'Users' is declared but its value is never read.
+src/pages/Dashboard.tsx(14,9): error TS6133: 'user' is declared but its value is never read.
+src/pages/StrokeAssessment.tsx(8,27): error TS6133: 'AlertTriangle' is declared but its value is never read.
+src/pages/StrokeAssessment.tsx(8,42): error TS6133: 'Info' is declared but its value is never read.

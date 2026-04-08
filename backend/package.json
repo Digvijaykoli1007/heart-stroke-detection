@@ -1,0 +1,43 @@
+{
+  "name": "heartbeat-monitor-backend",
+  "version": "1.0.0",
+  "description": "Backend API for CardioMonitor+ clinical intelligence platform",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "vercel-build": "prisma generate && prisma migrate deploy && tsc",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "seed": "tsx src/utils/seed.ts"
+  },
+  "keywords": ["healthcare", "cardiology", "monitoring", "api"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@prisma/client": "^5.9.1",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.1",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "socket.io": "^4.6.1",
+    "zod": "^3.22.4",
+    "nodemailer": "^6.9.9",
+    "date-fns": "^3.3.1",
+    "axios": "^1.6.7"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.11.16",
+    "@types/cors": "^2.8.17",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/nodemailer": "^6.4.14",
+    "prisma": "^5.9.1",
+    "typescript": "^5.3.3",
+    "tsx": "^4.7.1"
+  }
+}

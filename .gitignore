@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+ml_env/
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.*.local
+*.env
+
+# Build outputs
+dist/
+build/
+*.log
+*.tsbuildinfo
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Vercel
+.vercel
+
+# Testing
+coverage/
+*.test.js
+
+# Misc
+*.bak
+*.tmp
+.cache/
+
+# IMPORTANT: Don't ignore ML model files (needed for deployment)
+!ml/models/*.pkl

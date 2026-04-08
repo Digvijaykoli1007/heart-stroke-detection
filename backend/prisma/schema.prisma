@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  PATIENT
+  DOCTOR
+  ADMIN
+}
+
+enum AlertType {
+  BRADYCARDIA    // Low heart rate
+  TACHYCARDIA    // High heart rate
+  CRITICAL       // Dangerous levels
+}
+
+model User {
+  id                String              @id @default(cuid())
+  email             String              @unique
+  name              String
+  password          String              // bcrypt hashed
+  role              Role                @default(PATIENT)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  // Relations
+  heartbeatRecords  HeartbeatRecord[]
+  alerts            Alert[]
+  alertSettings     AlertSettings?
+  healthProfile     HealthProfile?
+  
+  // Doctor-patient relationships
+  patientsAccess    PatientAccess[]     @relation("DoctorAccess")
+  doctorsAccess     PatientAccess[]     @relation("PatientAccess")
+
+  @@index([email])
+  @@index([role])
+}
+
+model HeartbeatRecord {
+  id            String      @id @default(cuid())
+  userId        String
+  bpm           Int
+  timestamp     DateTime    @default(now())
+  source        String      @default("manual") // manual, mobile, wearable, simulated
+  notes         String?
+  
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, timestamp(sort: Desc)])
+  @@index([timestamp])
+}
+
+model Alert {
+  id            String      @id @default(cuid())
+  userId        String
+  bpmValue      Int
+  alertType     AlertType
+  message       String
+  dismissed     Boolean     @default(false)
+  dismissedAt   DateTime?
+  createdAt     DateTime    @default(now())
+  
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([dismissed])
+  @@index([alertType])
+}
+
+model AlertSettings {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  minBpm            Int      @default(50)
+  maxBpm            Int      @default(120)
+  criticalMinBpm    Int      @default(40)
+  criticalMaxBpm    Int      @default(140)
+  emailEnabled      Boolean  @default(true)
+  smsEnabled        Boolean  @default(false)
+  pushEnabled       Boolean  @default(true)
+  
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model HealthProfile {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  age               Int
+  gender            String
+  hypertension      Boolean   @default(false)
+  heartDisease      Boolean   @default(false)
+  bmi               Float?
+  avgGlucoseLevel   Float?
+  smokingStatus     String?   // "never", "formerly", "current", "unknown"
+  strokeRiskScore   Float?    // ML model output (0-1)
+  lastAssessment    DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([strokeRiskScore])
+}
+
+model StrokePrediction {
+  id                  String    @id @default(cuid())
+  userId              String
+  
+  // Input features
+  age                 Float
+  gender              String
+  hypertension        Boolean
+  heartDisease        Boolean
+  everMarried         String
+  workType            String
+  residenceType       String
+  avgGlucoseLevel     Float
+  bmi                 Float
+  smokingStatus       String
+  
+  // Prediction output
+  prediction          Int       // 0 = No Stroke, 1 = Stroke
+  probability         Float     // 0.0 to 1.0
+  confidence          Float     // Model confidence
+  riskLevel           String    // Low, Moderate, High, Very High
+  riskColor           String    // Visual indicator
+  
+  // Metadata
+  modelVersion        String    @default("1.0.0")
+  createdAt           DateTime  @default(now())
+  notes               String?   // Optional patient/doctor notes
+  
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([riskLevel])
+  @@index([createdAt])
+}
+
+model PatientAccess {
+  id          String   @id @default(cuid())
+  doctorId    String
+  patientId   String
+  grantedAt   DateTime @default(now())
+  
+  doctor      User     @relation("DoctorAccess", fields: [doctorId], references: [id], onDelete: Cascade)
+  patient     User     @relation("PatientAccess", fields: [patientId], references: [id], onDelete: Cascade)
+  
+  @@unique([doctorId, patientId])
+  @@index([doctorId])
+  @@index([patientId])
+}

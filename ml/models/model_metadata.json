@@ -1,0 +1,29 @@
+{
+  "model_type": "RandomForestClassifier",
+  "n_estimators": 300,
+  "max_depth": 12,
+  "training_samples": 68188,
+  "test_samples": 8680,
+  "accuracy": 0.8670506912442396,
+  "precision": 0.06386701662292213,
+  "recall": 0.46496815286624205,
+  "f1_score": 0.1123076923076923,
+  "roc_auc": 0.7995099061288637,
+  "feature_count": 15,
+  "categorical_features": [
+    "gender",
+    "ever_married",
+    "work_type",
+    "Residence_type",
+    "smoking_status"
+  ],
+  "numerical_features": [
+    "age",
+    "hypertension",
+    "heart_disease",
+    "avg_glucose_level",
+    "bmi"
+  ],
+  "class_balance_method": "SMOTE",
+  "trained_at": "2026-02-22T00:33:56.384922"
+}

@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "name": "cardiomonitor-backend",
+  "builds": [
+    {
+      "src": "src/server.ts",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "src/server.ts"
+    }
+  ],
+  "env": {
+    "DATABASE_URL": "@database_url",
+    "JWT_SECRET": "@jwt_secret",
+    "JWT_EXPIRES_IN": "7d",
+    "NODE_ENV": "production",
+    "ML_API_URL": "@ml_api_url"
+  }
+}

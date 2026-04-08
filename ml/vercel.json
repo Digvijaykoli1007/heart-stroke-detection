@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "name": "cardiomonitor-ml-api",
+  "builds": [
+    {
+      "src": "api/*.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/api/index.py"
+    }
+  ]
+}
