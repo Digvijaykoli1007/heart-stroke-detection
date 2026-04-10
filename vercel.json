@@ -14,11 +14,11 @@
   "rewrites": [
     {
       "source": "/api/predict",
-      "dest": "ml/api/index.py"
+      "destination": "ml/api/index.py"
     },
     {
       "source": "/(.*)",
-      "dest": "frontend/$1"
+      "destination": "frontend/$1"
     }
   ]
 }
