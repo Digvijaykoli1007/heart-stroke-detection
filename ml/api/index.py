@@ -28,6 +28,7 @@ def home():
         "model_loaded": model is not None
     })
 
+@app.route("/predict", methods=["POST"])
 @app.route("/api/predict", methods=["POST"])
 def predict():
     if model is None:
