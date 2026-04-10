@@ -20,6 +20,7 @@ export interface ChartDataPoint {
   time?: string;
   timestamp?: string;
   bpm: number;
+  spo2?: number;
 }
 
 export interface BPMUpdateData {

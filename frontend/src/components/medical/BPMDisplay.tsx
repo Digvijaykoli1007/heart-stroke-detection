@@ -4,7 +4,7 @@ import { Heart } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 
 interface BPMDisplayProps {
-  bpm: number;
+  bpm: number | null;
   status: 'normal' | 'warning' | 'critical';
   lastUpdate?: Date;
   size?: 'sm' | 'md' | 'lg';
@@ -100,7 +100,7 @@ export const BPMDisplay: React.FC<BPMDisplayProps> = ({
             config.color
           )}
         >
-          {bpm}
+          {bpm ?? '--'}
         </span>
         <span className={clsx(
           'font-heading font-semibold text-neutral-500 uppercase tracking-wider',

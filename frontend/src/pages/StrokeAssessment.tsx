@@ -55,7 +55,7 @@ export default function StrokeAssessment() {
 
     try {
       if (!vitals) {
-        throw new Error("Hardware vitals pending. Please ensure the sensor is connected and Firebase is updating.");
+        throw new Error("Hardware vitals pending. Please ensure the ESP32 is sending data to Firebase.");
       }
 
       const patientData: PatientData = {
@@ -96,6 +96,38 @@ export default function StrokeAssessment() {
     if (risk < 50) return 'Moderate';
     if (risk < 75) return 'High';
     return 'Critical';
+  };
+
+  const getSuggestions = (risk: number) => {
+    if (risk < 15) {
+      return [
+        "Maintain a healthy diet rich in fruits, vegetables, and whole grains.",
+        "Engage in regular physical activity (e.g., 150 minutes of moderate exercise per week).",
+        "Keep up with routine medical check-ups."
+      ];
+    }
+    if (risk < 50) {
+      return [
+        "Monitor your blood pressure and cholesterol levels regularly.",
+        "Consider consulting a nutritionist for a heart-healthy diet plan.",
+        "Reduce sodium intake and avoid smoking to lower your risk further.",
+        "Incorporate stress-reduction techniques like meditation or yoga."
+      ];
+    }
+    if (risk < 75) {
+      return [
+        "Schedule a follow-up appointment with a cardiologist soon.",
+        "Strictly adhere to any prescribed medications for blood pressure or cholesterol.",
+        "Begin a medically supervised exercise program.",
+        "Monitor your heart rate and SpO2 levels daily using your home monitoring setup."
+      ];
+    }
+    return [
+      "Seek immediate medical consultation to evaluate your cardiovascular health.",
+      "Do not ignore symptoms like sudden numbness, confusion, or severe headache.",
+      "Work with your doctor on a strict medication and lifestyle management plan.",
+      "Consider a thorough diagnostic review, including an ECG and blood panels."
+    ];
   };
 
   const currentRiskColor = result !== null ? getRiskColor(result) : '';
@@ -159,6 +191,21 @@ export default function StrokeAssessment() {
             </div>
           </div>
 
+          {/* Health Care Suggestions */}
+          <div className="bg-white rounded-xl shadow-lg p-8 mb-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Recommended Health Care Plan</h3>
+            <ul className="space-y-3">
+              {getSuggestions(result).map((suggestion, index) => (
+                <li key={index} className="flex items-start gap-3">
+                  <div className="mt-0.5 bg-indigo-50 p-1.5 rounded-full ring-1 ring-indigo-200">
+                     <Activity className="w-4 h-4 text-indigo-600" />
+                  </div>
+                  <span className="text-gray-700 leading-relaxed font-medium">{suggestion}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
           {/* Action Buttons */}
           <div className="bg-white rounded-xl shadow-lg p-6">
             <div className="flex flex-wrap gap-4">
@@ -204,7 +251,7 @@ export default function StrokeAssessment() {
               <HardDrive className="w-5 h-5 text-blue-600 mt-0.5" />
               <div className="text-sm text-blue-800">
                 <p className="font-semibold">Hardware Status</p>
-                <p>Sensor Data Link: {vitals ? 'Connected' : 'Waiting for connection...'}</p>
+                <p>Sensor Data Link: {vitals ? 'Active' : 'Waiting for ESP32...'}</p>
               </div>
             </div>
             {vitals && (

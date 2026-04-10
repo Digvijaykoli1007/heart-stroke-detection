@@ -3,6 +3,7 @@ import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { Card, CardHeader } from '../components/ui/Card';
 import { BPMDisplay } from '../components/medical/BPMDisplay';
 import { BPMLineChart } from '../components/charts/BPMLineChart';
+import { SpO2LineChart } from '../components/charts/SpO2LineChart';
 import { Activity, AlertCircle, Wind } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../hooks/useAuth';
@@ -12,10 +13,11 @@ import { ChartDataPoint } from '../types';
 export const Dashboard: React.FC = () => {
   const { } = useAuth();
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
-  const [currentBPM, setCurrentBPM] = useState<number>("--" as unknown as number);
-  const [currentSpO2, setCurrentSpO2] = useState<number>("--" as unknown as number);
+  const [currentBPM, setCurrentBPM] = useState<number | null>(null);
+  const [currentSpO2, setCurrentSpO2] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
+  const lastTimeRef = React.useRef<string | null>(null);
 
   // Poll Firebase Realtime Database
   useEffect(() => {
@@ -23,16 +25,29 @@ export const Dashboard: React.FC = () => {
 
     const updateDashboard = async () => {
       const latest = await fetchLatestVitals();
-      if (!latest) {
+      
+      // If no data or data is missing time, we treat as disconnected/idle
+      if (!latest || !latest.time) {
         setIsConnected(false);
+        setCurrentBPM(null);
+        setCurrentSpO2(null);
         return;
       }
 
+      // ONLY update if it's a NEW reading (timestamp changed)
+      if (latest.time === lastTimeRef.current) {
+        // Data is same as before, don't update chart or current values
+        // This stops the graph from moving until new hardware data arrives
+        return;
+      }
+
+      // New unique reading arrived!
+      lastTimeRef.current = latest.time;
       setIsConnected(true);
       setCurrentBPM(latest.heartRate);
       setCurrentSpO2(latest.spo2);
 
-      const time = new Date().toLocaleTimeString('en-US', {
+      const timeLabel = new Date(latest.time).toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit'
@@ -40,23 +55,23 @@ export const Dashboard: React.FC = () => {
 
       setChartData(prev => [
         ...prev.slice(-23), // Keep last 23 points for chart
-        { time, bpm: latest.heartRate }
+        { time: timeLabel, bpm: latest.heartRate, spo2: latest.spo2 }
       ]);
     };
 
     updateDashboard(); // initial sync
-    const interval = setInterval(updateDashboard, 3000); // 3 second polling matching lesson01
+    const interval = setInterval(updateDashboard, 3000); 
     return () => clearInterval(interval);
   }, []);
 
-  const getBPMStatus = (bpm: number): 'normal' | 'warning' | 'critical' => {
+  const getBPMStatus = (bpm: number | null): 'normal' | 'warning' | 'critical' => {
     if (bpm == null || isNaN(bpm)) return 'normal';
     if (bpm < 50 || bpm > 120) return 'critical';
     if (bpm < 60 || bpm > 100) return 'warning';
     return 'normal';
   };
 
-  const getSpO2Status = (spo2: number): 'normal' | 'warning' | 'critical' => {
+  const getSpO2Status = (spo2: number | null): 'normal' | 'warning' | 'critical' => {
     if (spo2 == null || isNaN(spo2)) return 'normal';
     if (spo2 < 90) return 'critical';
     if (spo2 < 95) return 'warning';
@@ -103,13 +118,13 @@ export const Dashboard: React.FC = () => {
       <div className="mb-6 flex justify-end">
         <div className={clsx(
           "px-4 py-2 rounded-full flex items-center gap-2 text-sm font-medium",
-          isConnected ? "bg-emerald-50 text-emerald-700" : "bg-neutral-100 text-neutral-600"
+          isConnected && currentBPM !== null ? "bg-emerald-50 text-emerald-700" : "bg-neutral-100 text-neutral-600"
         )}>
           <div className={clsx(
             "w-2.5 h-2.5 rounded-full",
-            isConnected ? "bg-emerald-500 animate-pulse" : "bg-neutral-400"
+            isConnected && currentBPM !== null ? "bg-emerald-500 animate-pulse" : "bg-neutral-400"
           )} />
-          {isConnected ? "Hardware Connected (Firebase)" : "Connecting to Hardware..."}
+          {isConnected && currentBPM !== null ? "Hardware Connected (Firebase)" : "Waiting for ESP32 Data..."}
         </div>
       </div>
       
@@ -153,7 +168,7 @@ export const Dashboard: React.FC = () => {
                     spo2Status === 'normal' ? 'text-indigo-600' :
                     spo2Status === 'warning' ? 'text-amber-600' : 'text-rose-600'
                   )}>
-                    {currentSpO2}
+                    {currentSpO2 ?? '--'}
                   </span>
                   <span className="text-3xl font-semibold text-neutral-400">%</span>
                 </div>
@@ -169,17 +184,28 @@ export const Dashboard: React.FC = () => {
         </Card>
       </div>
       
-      {/* BPM Trend Chart */}
+      {/* Trends Charts */}
       {chartData.length > 0 && (
-        <Card padding="md">
-          <CardHeader
-            title="Heart Rate History"
-            subtitle="Real-time monitoring"
-          />
-          <div className="mt-4">
-            <BPMLineChart data={chartData} height={350} />
-          </div>
-        </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <Card padding="md">
+            <CardHeader
+              title="Heart Rate History"
+              subtitle="Real-time monitoring"
+            />
+            <div className="mt-4">
+              <BPMLineChart data={chartData} height={350} />
+            </div>
+          </Card>
+          <Card padding="md">
+            <CardHeader
+              title="SpO2 History"
+              subtitle="Real-time monitoring"
+            />
+            <div className="mt-4">
+              <SpO2LineChart data={chartData} height={350} />
+            </div>
+          </Card>
+        </div>
       )}
     </DashboardLayout>
   );

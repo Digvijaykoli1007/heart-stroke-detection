@@ -1,122 +1,74 @@
-"""
-CardioMonitor+ Stroke Prediction API - Vercel Serverless Function
-Optimized for Vercel Python Runtime
-"""
-
-from flask import Flask, request, jsonify
-import pickle
-import numpy as np
-import pandas as pd
-from pathlib import Path
-import json
-from datetime import datetime
 import os
+import joblib
+import pandas as pd
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+from pathlib import Path
 
 app = Flask(__name__)
+# Enable CORS for frontend deployment
+CORS(app)
 
-# Paths - Vercel compatible
+# Load the 8-feature vitals model
 BASE_DIR = Path(__file__).parent.parent
-MODEL_DIR = BASE_DIR / 'models'
-MODEL_PATH = MODEL_DIR / 'stroke_model.pkl'
-PREPROCESSOR_PATH = MODEL_DIR / 'preprocessor.pkl'
-FEATURE_NAMES_PATH = MODEL_DIR / 'feature_names.pkl'
+MODEL_PATH = BASE_DIR / "model.pkl"
 
-# Load models (cached at cold start)
+model = None
 try:
-    with open(MODEL_PATH, 'rb') as f:
-        model = pickle.load(f)
-    with open(PREPROCESSOR_PATH, 'rb') as f:
-        preprocessor = pickle.load(f)
-    with open(FEATURE_NAMES_PATH, 'rb') as f:
-        feature_names = pickle.load(f)
-    MODEL_LOADED = True
+    model = joblib.load(MODEL_PATH)
+    print(f"Model loaded from {MODEL_PATH}")
 except Exception as e:
-    print(f"Warning: Could not load ML model: {e}")
-    MODEL_LOADED = False
-    model = None
-    preprocessor = None
-    feature_names = None
+    print(f"Error loading model: {e}")
 
-@app.route('/api/health', methods=['GET'])
-def health_check():
-    """Health check endpoint"""
+@app.route("/", methods=["GET"])
+def home():
     return jsonify({
-        'status': 'healthy',
-        'service': 'CardioMonitor+ ML API',
-        'model_loaded': MODEL_LOADED,
-        'timestamp': datetime.utcnow().isoformat()
+        "status": "online",
+        "service": "CardioMonitor+ ML Prediction API",
+        "model_loaded": model is not None
     })
 
-@app.route('/api/predict', methods=['POST'])
-def predict_stroke_risk():
-    """Predict stroke risk from patient data"""
+@app.route("/api/predict", methods=["POST"])
+def predict():
+    if model is None:
+        return jsonify({"error": "Model not loaded on server"}), 500
+        
     try:
-        if not MODEL_LOADED:
-            return jsonify({
-                'success': False,
-                'error': 'ML model not loaded'
-            }), 500
-
         data = request.get_json()
-        
-        # Extract and validate features
-        required_fields = ['age', 'hypertension', 'heart_disease', 'avg_glucose_level', 'bmi']
-        for field in required_fields:
-            if field not in data:
-                return jsonify({
-                    'success': False,
-                    'error': f'Missing required field: {field}'
-                }), 400
-        
-        # Prepare input data
-        input_data = pd.DataFrame([{
-            'age': float(data['age']),
-            'hypertension': int(data['hypertension']),
-            'heart_disease': int(data['heart_disease']),
-            'avg_glucose_level': float(data['avg_glucose_level']),
-            'bmi': float(data['bmi']),
-            'gender': data.get('gender', 'Other'),
-            'ever_married': data.get('ever_married', 'No'),
-            'work_type': data.get('work_type', 'Private'),
-            'Residence_type': data.get('Residence_type', 'Urban'),
-            'smoking_status': data.get('smoking_status', 'Unknown')
-        }])
-        
-        # Preprocess and predict
-        X_processed = preprocessor.transform(input_data)
-        prediction = model.predict(X_processed)[0]
-        probability = model.predict_proba(X_processed)[0]
-        
-        # Calculate risk level
-        risk_score = float(probability[1] * 100)
-        if risk_score < 20:
-            risk_level = 'low'
-        elif risk_score < 50:
-            risk_level = 'moderate'
-        else:
-            risk_level = 'high'
-        
-        return jsonify({
-            'success': True,
-            'prediction': int(prediction),
-            'risk_score': round(risk_score, 2),
-            'risk_level': risk_level,
-            'confidence': round(float(max(probability)), 4),
-            'timestamp': datetime.utcnow().isoformat()
-        })
-        
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
 
-# Vercel serverless handler
+        # Convert "Male/Female" to 1/0 for the model
+        gender_val = 1 if data.get("gender") == "Male" else 0
+
+        # Create a DataFrame with the EXACT names and order used in training
+        # This matches the structure in ml/ml_api.py which was verified to work
+        features_df = pd.DataFrame([{
+            "gender": gender_val,
+            "age": float(data.get("age", 0)),
+            "hypertension": int(data.get("hypertension", 0)),
+            "heart_disease": int(data.get("heart_disease", 0)),
+            "spo2": float(data.get("spo2", 0)),
+            "heart_rate": float(data.get("heartRate", 0)), # Mapping heartRate to heart_rate
+            "weight": float(data.get("weight", 0)),
+            "height": float(data.get("height", 0))
+        }])
+
+        prediction_proba = model.predict_proba(features_df)[0][1]
+        risk_percentage = round(float(prediction_proba) * 100, 2)
+
+        return jsonify({
+            "stroke_risk": risk_percentage,
+            "status": "success"
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# Vercel Serverless Handler
 def handler(request):
-    """Vercel serverless function handler"""
     with app.app_context():
         return app.full_dispatch_request()
 
-# For local testing
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001, debug=True)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8000)

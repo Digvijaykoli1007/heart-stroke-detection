@@ -1,6 +1,6 @@
 // src/services/mlApi.ts
 
-const ML_API_URL = import.meta.env.VITE_ML_API_URL || "http://127.0.0.1:8000/predict";
+const ML_API_URL = import.meta.env.VITE_ML_API_URL || "/api/predict";
 
 export interface PatientData {
   heartRate: number;

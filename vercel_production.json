@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "name": "cardiomonitor-plus",
+  "builds": [
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    },
+    {
+      "src": "ml/api/index.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/predict",
+      "dest": "/ml/api/index.py"
+    },
+    {
+      "source": "/(.*)",
+      "dest": "/frontend/$1"
+    }
+  ]
+}
